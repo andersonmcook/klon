@@ -1,15 +1,21 @@
 defmodule Klon.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+
   def project do
     [
       app: :klon,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.16",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env()),
-      aliases: aliases()
+      aliases: aliases(),
+
+      # Docs
+      name: "Klon",
+      docs: [main: "Klon", source_ref: "v#{@version}"]
     ]
   end
 

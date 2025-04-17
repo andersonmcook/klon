@@ -1,7 +1,5 @@
 defmodule Klon.Strategies.SelfReferential do
-  @moduledoc """
-  A strategy for cloning self-referential schemas.
-  """
+  @moduledoc false
 
   @behaviour Klon.Strategy
 

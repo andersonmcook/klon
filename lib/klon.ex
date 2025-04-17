@@ -1,65 +1,16 @@
 defmodule Klon do
-  @moduledoc """
-  Klon simplifies cloning of database records via a simple API and flexible, user-defined protocol implementations.
+  @external_resource Path.join([__DIR__, "../README.md"])
 
-  ## Getting Started
-
-  Define an implementation for an `Ecto.Schema`.
-
-      defmodule Parent do
-        use Ecto.Schema
-
-        defimpl Klon.Clonable do
-          def assocs(_parent), do: ~w(children)a
-          def change(parent, params), do: Ecto.Changset.change(parent, params)
-
-          def multi(parent, name, changeset) do
-            Ecto.Multi.insert(Ecto.Multi.new(), name, changeset)
-          end
-        end
-
-        schema "parents" do
-          field :example, :integer
-          has_many :children, Child
-        end
-      end
-
-  See `Klon.Clonable` for documentation on implementations.
-
-  The protocol may be derived with zero or more options.
-
-  ### Options
-
-  * `:assocs` - A list of child associations to _always_ clone. Defaults to `[]`
-
-  * `:changeset` - A tuple of module and function that should return an `%Ecto.Changeset{}` or `nil`.
-  Defaults to `{Ecto.Changeset, :change}`
-
-      defmodule Child do
-        use Ecto.Schema
-
-        @derive Klon.Clonable
-        schema "children" do
-          field :example, :integer
-
-          belongs_to :parent, Parent
-        end
-      end
-
-  Clone the record.
-
-      {:ok, changes} = source |> Klon.clone() |> Repo.transaction()
-
-  The clone may be accessed via the source in the changes:
-
-      pair_fn = Klon.pair!(source)
-      value_fn = Klon.value!(source)
-      name = Klon.name(source)
-
-      {^source, clone} = pair_fn.(changes)
-      ^clone = value_fn.(changes) 
-      ^clone = Map.fetch!(changes, name)
+  @doc_header """
+  Klon simplifies cloning of database records via Ecto with a simple API and flexible, user-defined protocol implementations.
   """
+
+  @doc_footer @external_resource
+              |> File.read!()
+              |> String.split("<!-- MDOC -->")
+              |> Enum.fetch!(1)
+
+  @moduledoc @doc_header <> @doc_footer
 
   alias __MODULE__.{Clonable, Graph, Metadata}
   alias Ecto.Multi
@@ -175,7 +126,7 @@ defmodule Klon do
   @opaque name :: {__MODULE__, module, Multi.name()}
 
   @doc """
-  Returns the name of a source's clone in an `#{Multi}`'s changes.
+  Returns the name of a source's clone in a multi's changes.
   """
   @spec name(source :: Clonable.t()) :: name
   def name(%module{} = schema) do
@@ -183,7 +134,7 @@ defmodule Klon do
   end
 
   @doc """
-  Returns a function to access a source's clone in an `#{Multi}`'s changes.
+  Returns a function to access a source's clone in an multi's changes.
   """
   @spec value(source :: t) :: (Multi.changes() -> clone :: nil | t) when t: Clonable.t()
   def value(source) do
@@ -192,7 +143,7 @@ defmodule Klon do
   end
 
   @doc """
-  Returns a function to access a source's clone in an `#{Multi}`'s changes.
+  Returns a function to access a source's clone in an multi's changes.
 
   An exception is raised if the clone is not present.
   """
@@ -203,7 +154,7 @@ defmodule Klon do
   end
 
   @doc """
-  Returns a function to pair a source and its clone from an `#{Multi}`'s changes.
+  Returns a function to pair a source and its clone from an multi's changes.
   """
   @spec pair(source :: t) :: (Multi.changes() -> {source :: t, clone :: nil | t})
         when t: Clonable.t()
@@ -213,7 +164,7 @@ defmodule Klon do
   end
 
   @doc """
-  Returns a function to pair a source and its clone from an `#{Multi}`'s changes.
+  Returns a function to pair a source and its clone from an Multi's changes.
 
   An exception is raised if the clone is not present.
   """

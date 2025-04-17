@@ -1,6 +1,6 @@
 # Klon
 
-**TODO: Add description**
+Klon simplifies cloning of database records via Ecto with a simple API and flexible, user-defined protocol implementations.
 
 ## Installation
 
@@ -19,42 +19,66 @@ Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_do
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at <https://hexdocs.pm/klon>.
 
-## TODO
-- [x] set up repo
-- [x] data structure that mimics screener -> question & stim -> question_stims
-- [ ] tests
-- [x] credo
-- [x] dialyzer
-- [ ] cache plt file
-- [ ] ci
-- [x] build graph
-- [x] traverse graph
-- [x] multi
-- [ ] optimize for insert_all?
-- [x] Ecto mix task to evaluate graph? assocs that go in one direction but not the other?
-- [ ] clone "through" associations
-- [ ] reset_fields callback?
+<!-- MDOC -->
 
+## Setup
 
-## Callbacks
-`assocs` 
- - should this be a list of child associations or something more like what `preload` accepts?
- - how much would someone need to filter the list when they can do anything they want in the `changeset` function
+Define an implementation for an `Ecto.Schema`.
 
-`changeset` 
-  - currently is provided the source and the new parent
-  1. should it instead be given a changeset with all the source things applied and then regular changeset functions can be used?
-  2. instead of the parent should it be given a contextual mapping `%{parent_assoc_name => parent_struct | nil}`
-  3. have `defer` be a valid return value?
-    - how many times would we allow deferring to happen to not endlessly defer?
-  4. build a dependency tree starting at first record to clone so that we know when we've satisfied the child's pre-conditions for the parents
-    - then we don't have to defer
-           
-`multi`
- - escape hatch
- - provides `{name, changeset}, source, parent_map, changes`
+    defmodule Parent do
+      use Ecto.Schema
 
-`???` 
-- clean API
-- add dscout functionality
-- then move on to graph/tree stuff
+      defimpl Klon.Clonable do
+        def assocs(_parent), do: ~w(children)a
+        def change(parent, params), do: Ecto.Changset.change(parent, params)
+
+        def multi(parent, name, changeset) do
+          Ecto.Multi.insert(Ecto.Multi.new(), name, changeset)
+        end
+      end
+
+      schema "parents" do
+        field :example, :integer
+        has_many :children, Child
+      end
+    end
+
+See `Klon.Clonable` for [documentation](lib/klon/clonable.ex) on implementations.
+
+The protocol may instead be derived with zero or more options.
+
+    defmodule Child do
+      use Ecto.Schema
+
+      @derive Klon.Clonable
+      schema "children" do
+        field :example, :integer
+
+        belongs_to :parent, Parent
+      end
+    end
+
+### Options
+
+- `:assocs` - A list of child associations to _always_ clone. Defaults to `[]`
+
+- `:changeset` - A tuple of module and function that should return an `%Ecto.Changeset{}` or `nil`.
+  Defaults to `{Ecto.Changeset, :change}`
+
+## Usage
+
+Clone the record.
+
+    {:ok, changes} = source |> Klon.clone() |> Repo.transaction()
+
+The clone may be accessed via the source in the changes:
+
+    pair_fn = Klon.pair!(source)
+    value_fn = Klon.value!(source)
+    name = Klon.name(source)
+
+    {^source, clone} = pair_fn.(changes)
+    ^clone = value_fn.(changes)
+    ^clone = Map.fetch!(changes, name)
+
+<!-- MDOC -->

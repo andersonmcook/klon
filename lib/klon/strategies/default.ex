@@ -1,7 +1,5 @@
 defmodule Klon.Strategies.Default do
-  @moduledoc """
-  A strategy for cloning non-self-referential schema records.
-  """
+  @moduledoc false
 
   @behaviour Klon.Strategy
 
