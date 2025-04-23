@@ -12,6 +12,7 @@ defmodule Klon.MixProject do
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env()),
       aliases: aliases(),
+      preferred_cli_env: ["ecto.reset": :test],
 
       # Docs
       name: "Klon",
