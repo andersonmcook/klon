@@ -16,18 +16,16 @@ defmodule Klon.Test do
     assert normal.value == Map.fetch!(changes, Klon.name(normal)).value
   end
 
-  test "value/1 returns a function to find a cloned record" do
+  test "value/1 finds a cloned record" do
     normal = insert!(Normal)
     assert {:ok, changes} = clone(normal)
-    value_fn = Klon.value(normal)
-    assert normal.value == value_fn.(changes).value
+    assert normal.value == Klon.value(normal, changes).value
   end
 
-  test "pair/1 returns a function to pair a source and clone" do
+  test "pair/1 pairs a source and clone" do
     normal = insert!(Normal)
     assert {:ok, changes} = clone(normal)
-    pair_fn = Klon.pair(normal)
-    assert {^normal, clone} = pair_fn.(changes)
+    assert {^normal, clone} = Klon.pair(normal, changes)
     assert normal.value == clone.value
   end
 
@@ -179,13 +177,11 @@ defmodule Klon.Test do
       end
     end
 
-    value = Klon.value(self_referential_a)
-
     assert {:ok, changes} = clone(self_referential_a)
 
     assert clone =
-             changes
-             |> value.()
+             self_referential_a
+             |> Klon.value(changes)
              |> Repo.preload(children: :children)
 
     assert [_, _, _] = clone.children
@@ -251,7 +247,7 @@ defmodule Klon.Test do
     self_referential_b = insert!(SelfReferential, parent: self_referential_a)
     insert!(SelfReferential, parent: self_referential_b)
     assert {:ok, changes} = clone(self_referential_a)
-    clone = Repo.preload(Klon.value(self_referential_a).(changes), children: :children)
+    clone = Repo.preload(Klon.value(self_referential_a, changes), children: :children)
     assert implemented.id == clone.implemented_id
     assert %{children: [%{children: [_]}]} = clone
   end
@@ -262,7 +258,7 @@ defmodule Klon.Test do
     self_referential = insert!(SelfReferential, implemented: implemented)
     dependent = insert!(Dependent, normal: normal, self_referential: self_referential)
     assert {:ok, changes} = clone(normal)
-    clone = Klon.value(dependent).(changes)
+    clone = Klon.value(dependent, changes)
     assert self_referential.id == clone.self_referential_id
     refute normal.id == clone.normal_id
   end

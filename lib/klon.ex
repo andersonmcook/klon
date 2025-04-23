@@ -134,43 +134,30 @@ defmodule Klon do
   end
 
   @doc """
-  Returns a function to access a source's clone in an multi's changes.
+  Returns a source's clone in a multi's changes.
   """
-  @spec value(source :: t) :: (Multi.changes() -> clone :: nil | t) when t: Clonable.t()
-  def value(source) do
-    name = name(source)
-    &Map.get(&1, name)
-  end
+  @spec value(source :: t, Multi.changes()) :: clone :: nil | t when t: Clonable.t()
+  def value(source, changes), do: Map.get(changes, name(source))
 
   @doc """
-  Returns a function to access a source's clone in an multi's changes.
+  Returns a source's clone in a multi's changes.
 
   An exception is raised if the clone is not present.
   """
-  @spec value!(source :: t) :: (Multi.changes() -> clone :: t) when t: Clonable.t()
-  def value!(source) do
-    name = name(source)
-    &Map.fetch!(&1, name)
-  end
+  @spec value!(source :: t, Multi.changes()) :: clone :: t when t: Clonable.t()
+  def value!(source, changes), do: Map.fetch!(changes, name(source))
 
   @doc """
-  Returns a function to pair a source and its clone from an multi's changes.
+  Pairs a source with its clone from a multi's changes.
   """
-  @spec pair(source :: t) :: (Multi.changes() -> {source :: t, clone :: nil | t})
-        when t: Clonable.t()
-  def pair(source) do
-    name = name(source)
-    &{source, Map.get(&1, name)}
-  end
+  @spec pair(source :: t, Multi.changes()) :: {source :: t, clone :: nil | t} when t: Clonable.t()
+  def pair(source, changes), do: {source, Map.get(changes, name(source))}
 
   @doc """
-  Returns a function to pair a source and its clone from an Multi's changes.
+  Pairs a source with its clone from a multi's changes.
 
   An exception is raised if the clone is not present.
   """
-  @spec pair!(source :: t) :: (Multi.changes() -> {source :: t, clone :: t}) when t: Clonable.t()
-  def pair!(source) do
-    name = name(source)
-    &{source, Map.fetch!(&1, name)}
-  end
+  @spec pair!(source :: t, Multi.changes()) :: {source :: t, clone :: t} when t: Clonable.t()
+  def pair!(source, changes), do: {source, Map.fetch!(changes, name(source))}
 end

@@ -79,13 +79,9 @@ Clone the record.
 The clone may be accessed via the source in the changes:
 
 ```elixir
-pair_fn = Klon.pair!(source)
-value_fn = Klon.value!(source)
-name = Klon.name(source)
-
-{^source, clone} = pair_fn.(changes)
-^clone = value_fn.(changes)
-^clone = Map.fetch!(changes, name)
+clone = Map.fetch!(changes, Klon.name(source))
+^clone = Klon.value(source, changes)
+{^source, ^clone} = Klon.pair(source, changes)
 ```
 
 <!-- MDOC -->
