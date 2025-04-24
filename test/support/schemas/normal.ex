@@ -25,7 +25,7 @@ defmodule Klon.Normal do
     def changeset(source, params), do: change(source, params)
 
     def multi(%{variant: :skip}, _, _), do: Multi.new()
-    def multi(_, name, changeset), do: Multi.insert(Multi.new(), name, changeset)
+    defdelegate multi(source, name, changeset), to: Clonable.Default
   end
 
   schema "normals" do

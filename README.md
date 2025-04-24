@@ -1,6 +1,6 @@
 # Klon
 
-Klon simplifies cloning of database records via Ecto with a simple API and
+Klon simplifies cloning of database records via `Ecto` with a simple API and
 flexible, user-defined protocol implementations.
 
 ## Installation
@@ -24,7 +24,7 @@ be found at <https://hexdocs.pm/klon>.
 
 ## Setup
 
-Define an implementation for an `Ecto.Schema`.
+Define an implementation for an `Ecto.Schema`:
 
 ```elixir
 defmodule Parent do
@@ -32,11 +32,10 @@ defmodule Parent do
 
   defimpl Klon.Clonable do
     def assocs(_parent), do: ~w(children)a
-    def change(parent, params), do: Ecto.Changset.change(parent, params)
+    def change(parent, params), do: Ecto.Changeset.change(parent, params)
 
-    def multi(parent, name, changeset) do
-      Ecto.Multi.insert(Ecto.Multi.new(), name, changeset)
-    end
+    # Delegate to avoid boilerplate.
+    defdelegate multi(parent, name, changeset), to: Klon.Clonable.Default
   end
 
   schema "parents" do
@@ -46,9 +45,7 @@ defmodule Parent do
 end
 ```
 
-See `Klon.Clonable` for [documentation](lib/klon/clonable.ex) on implementations.
-
-The protocol may instead be derived with zero or more options.
+The protocol may instead be derived with zero or more options:
 
 ```elixir
 defmodule Child do
@@ -63,17 +60,11 @@ defmodule Child do
 end
 ```
 
-### Options
-
-- `:assocs` - A list of child associations to _always_ clone. Defaults to `[]`
-
-- `:changeset` - A tuple of module and function that should return an
-  `%Ecto.Changeset{}` or `nil`.
-  Defaults to `{Ecto.Changeset, :change}`
+See `Klon.Clonable` for [documentation](lib/klon/clonable.ex) on implementations.
 
 ## Usage
 
-Clone the record.
+Clone the record:
 
 ```elixir
 # Using a multi

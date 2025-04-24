@@ -1,11 +1,48 @@
 defprotocol Klon.Clonable do
   @moduledoc """
   A protocol to clone schemas and their child associations.
+
+  ## Deriving
+
+  The protocol may be derived with the following options: 
+
+  - `:assocs` - A list of child associations to _always_ clone or a tuple of
+  module and function that should return that list.
+
+  - `:changeset` - A tuple of module and function that should return an
+  `Ecto.Changeset` or `nil`.
+
+  - `:multi` - A tuple of module and function that should return an `Ecto.Multi`. 
+
+  See `Klon.Clonable.Default` for default implementations.
+
+  ## Examples
+
+  Using defaults:
+
+  ```elixir
+  @derive Klon.Clonable
+  ```
+
+  Specifying `assocs` only:
+
+  ```elixir
+  @derive {Klon.Clonable, assocs: ~w(children)a}
+  ```
+
+  Specifying all options:
+
+  ```elixir
+  @derive {Klon.Clonable,
+           assocs: {__MODULE__, :assocs},
+           changeset: {__MODULE__, :changeset},
+           multi: {__MODULE__, :multi}}
+  ```
   """
 
   alias Ecto.{Changeset, Multi, Schema}
 
-  @fallback_to_any true
+  @fallback_to_any Application.compile_env(:klon, :allow_fallback_to_any, true)
 
   @typedoc """
   Parameters passed to `changeset/2`.
@@ -19,7 +56,7 @@ defprotocol Klon.Clonable do
   def assocs(source)
 
   @doc """
-  Returns a changeset to use for the target record.
+  Returns an `Ecto.Changeset` to use for the target record.
 
   Return `nil` to skip cloning.
   """
@@ -27,52 +64,39 @@ defprotocol Klon.Clonable do
   def changeset(source, params)
 
   @doc """
-  Returns the entire multi containing any added operations.
+  Returns the entire `Ecto.Multi` containing any added operations.
 
   `changeset/2` has been been applied to the source, but the implementation should handle persistence.
   """
   @spec multi(t, Multi.name(), Changeset.t()) :: Multi.t()
   def multi(source, name, changeset)
-end
 
-defmodule Klon.Clonable.Default do
-  @moduledoc false
+  @impl Protocol
+  defmacro __deriving__(module, opts) do
+    opts =
+      Keyword.validate!(
+        opts,
+        [
+          :assocs,
+          changeset: {__MODULE__.Default, :changeset},
+          multi: {__MODULE__.Default, :multi}
+        ]
+      )
 
-  alias Ecto.Multi
+    delegate = &Enum.zip(~w(to as)a, Tuple.to_list(opts[&1]))
 
-  def assocs(_source), do: []
+    assocs_definition =
+      case Keyword.get(opts, :assocs, []) do
+        {_, _} -> quote do: defdelegate(assocs(source), unquote(delegate.(:assocs)))
+        assocs -> quote do: def(assocs(_source), do: unquote(assocs))
+      end
 
-  def changeset(source, _params) do
-    raise Protocol.UndefinedError,
-      description: "`#{Klon.Clonable}.changeset/2` must be explicitly implemented",
-      protocol: Klon.Clonable,
-      value: source
-  end
-
-  def multi(_source, _name, nil), do: Multi.new()
-  def multi(_source, name, changeset), do: Multi.insert(Multi.new(), name, changeset)
-end
-
-if Application.compile_env(:klon, :define_fallback_to_any, true) do
-  defimpl Klon.Clonable, for: Any do
-    alias Ecto.Changeset
-    alias Klon.Clonable.Default
-
-    defmacro __deriving__(module, _struct, opts) do
-      opts = Keyword.validate!(opts, assocs: [], changeset: {Changeset, :change})
-      delegate = Enum.zip(~w(to as)a, Tuple.to_list(opts[:changeset]))
-
-      quote do
-        defimpl Klon.Clonable, for: unquote(module) do
-          def assocs(_source), do: unquote(opts[:assocs])
-          defdelegate changeset(source, params), unquote(delegate)
-          defdelegate multi(source, name, changeset), to: Default
-        end
+    quote do
+      defimpl Klon.Clonable, for: unquote(module) do
+        unquote(assocs_definition)
+        defdelegate changeset(source, params), unquote(delegate.(:changeset))
+        defdelegate multi(source, name, changeset), unquote(delegate.(:multi))
       end
     end
-
-    defdelegate assocs(source), to: Default
-    defdelegate changeset(source, params), to: Default
-    defdelegate multi(source, name, changeset), to: Default
   end
 end
